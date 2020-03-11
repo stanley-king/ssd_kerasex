@@ -30,7 +30,7 @@ from data_generator.object_detection_2d_patch_sampling_ops import RandomPadFixed
 from data_generator.object_detection_2d_photometric_ops import ConvertTo3Channels
 from ssd_encoder_decoder.ssd_output_decoder import decode_detections
 from data_generator.object_detection_2d_misc_utils import apply_inverse_transforms
-
+confidence_threshold = 0.5
 from bounding_box_utils.bounding_box_utils import iou
 
 class Evaluator:
@@ -414,9 +414,15 @@ class Evaluator:
                     ymin = round(box[ymin_pred], 1)
                     xmax = round(box[xmax_pred], 1)
                     ymax = round(box[ymax_pred], 1)
+
                     prediction = (image_id, confidence, xmin, ymin, xmax, ymax)
                     # Append the predicted box to the results list for its class.
                     results[class_id].append(prediction)
+
+                    # if confidence > confidence_threshold:
+                    #     prediction = (image_id, confidence, xmin, ymin, xmax, ymax)
+                    #     # Append the predicted box to the results list for its class.
+                    #     results[class_id].append(prediction)
 
         self.prediction_results = results
 
@@ -617,6 +623,10 @@ class Evaluator:
                 print("No predictions for class {}/{}".format(class_id, self.n_classes))
                 true_positives.append(true_pos)
                 false_positives.append(false_pos)
+                cumulative_true_pos = np.cumsum(true_pos) # Cumulative sums of the true positives
+                cumulative_false_pos = np.cumsum(false_pos) # Cumulative sums of the false positives
+                cumulative_true_positives.append(cumulative_true_pos)
+                cumulative_false_positives.append(cumulative_false_pos)
                 continue
 
             # Convert the predictions list for this class into a structured array so that we can sort it by confidence.

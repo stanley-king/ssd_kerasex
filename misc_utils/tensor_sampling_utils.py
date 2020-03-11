@@ -18,6 +18,7 @@ limitations under the License.
 
 import numpy as np
 
+
 def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, mean=0.0, stddev=0.005):
     '''
     Can sub-sample and/or up-sample individual dimensions of the tensors in the given list
@@ -86,16 +87,18 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
     first_tensor = weights_list[0]
 
     if (not isinstance(sampling_instructions, (list, tuple))) or (len(sampling_instructions) != first_tensor.ndim):
-        raise ValueError("The sampling instructions must be a list whose length is the number of dimensions of the first tensor in `weights_list`.")
+        raise ValueError(
+            "The sampling instructions must be a list whose length is the number of dimensions of the first tensor in `weights_list`.")
 
     if (not init is None) and len(init) != len(weights_list):
-        raise ValueError("`init` must either be `None` or a list of strings that has the same length as `weights_list`.")
+        raise ValueError(
+            "`init` must either be `None` or a list of strings that has the same length as `weights_list`.")
 
-    up_sample = [] # Store the dimensions along which we need to up-sample.
-    out_shape = [] # Store the shape of the output tensor here.
+    up_sample = []  # Store the dimensions along which we need to up-sample.
+    out_shape = []  # Store the shape of the output tensor here.
     # Store two stages of the new (sub-sampled and/or up-sampled) weights tensors in the following two lists.
-    subsampled_weights_list = [] # Tensors after sub-sampling, but before up-sampling (if any).
-    upsampled_weights_list = [] # Sub-sampled tensors after up-sampling (if any), i.e. final output tensors.
+    subsampled_weights_list = []  # Tensors after sub-sampling, but before up-sampling (if any).
+    upsampled_weights_list = []  # Sub-sampled tensors after up-sampling (if any), i.e. final output tensors.
 
     # Create the slicing arrays from the sampling instructions.
     sampling_slices = []
@@ -103,7 +106,9 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
         if isinstance(sampling_inst, (list, tuple)):
             amax = np.amax(np.array(sampling_inst))
             if amax >= first_tensor.shape[i]:
-                raise ValueError("The sample instructions for dimension {} contain index {}, which is greater than the length of that dimension.".format(i, amax))
+                raise ValueError(
+                    "The sample instructions for dimension {} contain index {}, which is greater than the length of that dimension.".format(
+                        i, amax))
             sampling_slices.append(np.array(sampling_inst))
             out_shape.append(len(sampling_inst))
         elif isinstance(sampling_inst, int):
@@ -114,9 +119,10 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
                 sampling_slices.append(sampling_slice)
             elif sampling_inst < first_tensor.shape[i]:
                 # We want to SUB-sample this dimension. Randomly pick `sample_inst` many elements from it.
-                sampling_slice1 = np.array([0]) # We will always sample class 0, the background class.
+                sampling_slice1 = np.array([0])  # We will always sample class 0, the background class.
                 # Sample the rest of the classes.
-                sampling_slice2 = np.sort(np.random.choice(np.arange(1, first_tensor.shape[i]), sampling_inst - 1, replace=False))
+                sampling_slice2 = np.sort(
+                    np.random.choice(np.arange(1, first_tensor.shape[i]), sampling_inst - 1, replace=False))
                 sampling_slice = np.concatenate([sampling_slice1, sampling_slice2])
                 sampling_slices.append(sampling_slice)
             else:
@@ -125,7 +131,9 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
                 sampling_slices.append(sampling_slice)
                 up_sample.append(i)
         else:
-            raise ValueError("Each element of the sampling instructions must be either an integer or a list/tuple of integers, but received `{}`".format(type(sampling_inst)))
+            raise ValueError(
+                "Each element of the sampling instructions must be either an integer or a list/tuple of integers, but received `{}`".format(
+                    type(sampling_inst)))
 
     # Process the first tensor.
     subsampled_first_tensor = np.copy(first_tensor[np.ix_(*sampling_slices)])
@@ -134,7 +142,7 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
     # Process the other tensors.
     if len(weights_list) > 1:
         for j in range(1, len(weights_list)):
-            this_sampling_slices = [sampling_slices[i] for i in axes[j-1]] # Get the sampling slices for this tensor.
+            this_sampling_slices = [sampling_slices[i] for i in axes[j - 1]]  # Get the sampling slices for this tensor.
             subsampled_weights_list.append(np.copy(weights_list[j][np.ix_(*this_sampling_slices)]))
 
     if up_sample:
@@ -154,7 +162,9 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
         for i in up_sample:
             # Randomly select across which indices of this dimension to scatter the elements of `new_weights_tensor` in this dimension.
             up_sample_slice1 = np.array([0])
-            up_sample_slice2 = np.sort(np.random.choice(np.arange(1, upsampled_first_tensor.shape[i]), subsampled_first_tensor.shape[i] - 1, replace=False))
+            up_sample_slice2 = np.sort(
+                np.random.choice(np.arange(1, upsampled_first_tensor.shape[i]), subsampled_first_tensor.shape[i] - 1,
+                                 replace=False))
             up_sample_slices[i] = np.concatenate([up_sample_slice1, up_sample_slice2])
         upsampled_first_tensor[np.ix_(*up_sample_slices)] = subsampled_first_tensor
         upsampled_weights_list.append(upsampled_first_tensor)
@@ -163,12 +173,14 @@ def sample_tensors(weights_list, sampling_instructions, axes=None, init=None, me
         if len(weights_list) > 1:
             for j in range(1, len(weights_list)):
                 if init is None or init[j] == 'gaussian':
-                    upsampled_tensor = np.random.normal(loc=mean, scale=stddev, size=out_shape[axes[j-1]])
+                    upsampled_tensor = np.random.normal(loc=mean, scale=stddev, size=out_shape[axes[j - 1]])
                 elif init[j] == 'zeros':
-                    upsampled_tensor = np.zeros(out_shape[axes[j-1]])
+                    upsampled_tensor = np.zeros(out_shape[axes[j - 1]])
                 else:
-                    raise ValueError("Valid initializations are 'gaussian' and 'zeros', but received '{}'.".format(init[j]))
-                this_up_sample_slices = [up_sample_slices[i] for i in axes[j-1]] # Get the up-sampling slices for this tensor.
+                    raise ValueError(
+                        "Valid initializations are 'gaussian' and 'zeros', but received '{}'.".format(init[j]))
+                this_up_sample_slices = [up_sample_slices[i] for i in
+                                         axes[j - 1]]  # Get the up-sampling slices for this tensor.
                 upsampled_tensor[np.ix_(*this_up_sample_slices)] = subsampled_weights_list[j]
                 upsampled_weights_list.append(upsampled_tensor)
 
